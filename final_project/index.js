@@ -10,10 +10,39 @@ app.use(express.json());
 
 app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
 
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
-});
- 
+app.use('/customer/auth/*', function auth(req, res, next) {
+    const token = req.headers.authorization;
+  
+    if (!req.session.username || !req.session.token || !token) {
+      return res.status(401).json({
+        message: 'Please log in first.'
+      });
+    }
+  
+    const accessToken = token.split(' ')[1];
+  
+    if (accessToken !== req.session.token) {
+      return res.status(401).json({
+        message: 'Invalid token.'
+      });
+    }
+  
+    try {
+      const data = jwt.verify(accessToken, 'access');
+  
+      if (data.username !== req.session.username) {
+        return res.status(401).json({
+          message: 'Invalid token.'
+        });
+      }
+  
+      next();
+    } catch (err) {
+      return res.status(401).json({
+        message: 'Invalid token.'
+      });
+    }
+  });
 const PORT =5000;
 
 app.use("/customer", customer_routes);
